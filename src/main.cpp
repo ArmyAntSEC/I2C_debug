@@ -1,13 +1,16 @@
 #include <Arduino.h>
 #include <Wire.h>
-#include <base.h>
+#include <SerialStream.h>
 int LED = 13;
 volatile int x = 0;
 
 #define master
 
-void receiveEvent(int bytes) {
-  x = Wire.read();
+volatile int8_t riseCount = 0;
+
+void riseDetected()
+{
+    riseCount++;
 }
 
 void setup()
@@ -18,40 +21,29 @@ void setup()
     Log << "*************************" << endl;
     Log << "Hello I2C World!" << endl;
 
-#ifdef master
-    Log << "I am master!!!" << endl;
+    pinMode( 2, INPUT_PULLUP );
+    attachInterrupt( digitalPinToInterrupt(2), riseDetected, RISING );
+
+    delay(100);
+
     Wire.begin();
-#else
-    Log << "I am slave!!!" << endl;
-    pinMode (LED, OUTPUT);  
-    Wire.begin(9);   
-    Wire.onReceive(receiveEvent);
-#endif
+    Wire.beginTransmission(9); 
+    Wire.write("Hello World!");                     
+    Wire.endTransmission();    
+
+    
 }
 
 void loop()
 {
-#ifdef master
-    Wire.beginTransmission(9); 
-    Wire.write(x);             
-    Wire.endTransmission();    
-    x++;                       
-    if (x > 5)
-        x = 0;
+    int16_t myRiseCount;
+    noInterrupts();
+    myRiseCount = riseCount;
+    interrupts();
+    Log << "Rise count: " << myRiseCount << endl;
     delay(500);
-#else
-    if (x == '0') {
-        digitalWrite(LED, HIGH);
-        delay(200);
-        digitalWrite(LED, LOW);
-        delay(200);
-    }
 
-    if (x == '3') {
-        digitalWrite(LED, HIGH);
-        delay(400);
-        digitalWrite(LED, LOW);
-        delay(400);
-    }
-#endif
+    Wire.beginTransmission(9); 
+    Wire.write("Hello World!");                     
+    Wire.endTransmission();    
 }
