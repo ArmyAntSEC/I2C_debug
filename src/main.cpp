@@ -4,13 +4,28 @@
 int LED = 13;
 volatile int x = 0;
 
-#define master
+//#define master
 
-volatile int8_t riseCount = 0;
+bool ledOn = false;
 
-void riseDetected()
+void onReceive( int n )
 {
-    riseCount++;
+    ledOn = !ledOn;
+    digitalWrite( 13, ledOn );
+    Serial.println( "Data received" ); 
+    while(Wire.available() > 0 ) 
+    {
+        char c = Wire.read(); 
+        Serial.print(c);      
+    }    
+    Serial.println();      
+}
+
+void onRequest( )
+{
+    ledOn = !ledOn;
+    digitalWrite( 13, ledOn );
+    Serial.println( "Data requested" ); 
 }
 
 void setup()
@@ -21,29 +36,28 @@ void setup()
     Log << "*************************" << endl;
     Log << "Hello I2C World!" << endl;
 
-    pinMode( 2, INPUT_PULLUP );
-    attachInterrupt( digitalPinToInterrupt(2), riseDetected, RISING );
+    delay(1000);
 
-    delay(100);
-
-    Wire.begin();
-    Wire.beginTransmission(9); 
-    Wire.write("Hello World!");                     
-    Wire.endTransmission();    
+    #ifdef master
+        Wire.begin();    
+    #else
+        Wire.begin(8);     
+        Wire.onRequest(onRequest);
+        Wire.onReceive(onReceive);
+        pinMode( 13, OUTPUT );
+    #endif
 
     
 }
 
 void loop()
-{
-    int16_t myRiseCount;
-    noInterrupts();
-    myRiseCount = riseCount;
-    interrupts();
-    Log << "Rise count: " << myRiseCount << endl;
-    delay(500);
-
-    Wire.beginTransmission(9); 
-    Wire.write("Hello World!");                     
-    Wire.endTransmission();    
+{    
+    #ifdef master
+        Wire.beginTransmission(8); 
+        Wire.write("Hello World!");                     
+        Wire.endTransmission();                    
+        delay(250);
+    #else              
+    #endif
+    
 }
