@@ -34,7 +34,8 @@ void setup()
 
     Log << "*************************" << endl;
     Log << "Hello I2C World!" << endl;
-
+    pinMode( 13, OUTPUT );
+    
     delay(1000);
 
     #ifdef master
@@ -43,7 +44,7 @@ void setup()
         Wire.begin(8);     
         Wire.onRequest(onRequest);
         Wire.onReceive(onReceive);
-        pinMode( 13, OUTPUT );
+        
     #endif
 
     
@@ -64,7 +65,11 @@ void loop()
             Serial.print( c );    
         }
         Serial.println();        
+        ledOn = !ledOn;
+        digitalWrite( 13, ledOn );
+        
         delay(250);
+        
     #else              
     #endif
     
