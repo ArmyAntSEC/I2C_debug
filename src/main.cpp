@@ -4,7 +4,7 @@
 int LED = 13;
 volatile int x = 0;
 
-//#define master
+#define master
 
 bool ledOn = false;
 
@@ -23,9 +23,8 @@ void onReceive( int n )
 
 void onRequest( )
 {
-    ledOn = !ledOn;
-    digitalWrite( 13, ledOn );
-    Serial.println( "Data requested" ); 
+    Serial.println( "Data requested" );     
+    Wire.write( "OK" );
 }
 
 void setup()
@@ -53,9 +52,17 @@ void setup()
 void loop()
 {    
     #ifdef master
+        Serial.print ( "::" );
         Wire.beginTransmission(8); 
         Wire.write("Hello World!");                     
-        Wire.endTransmission();                    
+        Wire.endTransmission();                                    
+        int n = Wire.requestFrom(8, 2);
+        Serial.print ( n );
+        while ( Wire.available() ) {
+            char c = Wire.read();
+            Serial.print( c );    
+        }
+        Serial.println();        
         delay(250);
     #else              
     #endif
