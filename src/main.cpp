@@ -52,6 +52,7 @@ void setup()
 void loop()
 {    
     #ifdef master
+        Serial.print ( millis() );
         Serial.print ( "::" );
         Wire.beginTransmission(8); 
         Wire.write("Hello World!");                     
