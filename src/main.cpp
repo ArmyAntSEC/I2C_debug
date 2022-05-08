@@ -2,40 +2,39 @@
 #include <Wire.h>
 #include <SerialStream.h>
 int LED = 13;
-volatile int x = 0;
-
-//#define master
-#define ID 9
 
 bool ledOn = false;
 
-int32_t command[3] = {1, 1234, 2e6};
+const int32_t clicksPerRev = 1792;
+int32_t slowPos = 0;
+int32_t fastPos = 1200;
+const int32_t halfStepTime = 1e6;
+const int controllerID[3] = {8, 9, 10};
 
-void onReceive(int n)
+void sendCommand(int8_t controllerID, int motorID, int32_t pos, int32_t halfStepTime)
 {
-    ledOn = !ledOn;
-    digitalWrite(13, ledOn);
-    Serial.println("Data received");
 
-    uint8_t *commandBytes = (uint8_t *)(command);
+    int32_t command[3] = {motorID, pos, halfStepTime};
 
-    for (int i = 0; i<sizeof(command) & Wire.available()> 0; i++)
+    Wire.beginTransmission(controllerID);
+
+    for (int i = 0; i < sizeof(command); i++)
     {
-        commandBytes[i] = Wire.read();
+        uint8_t *commandBytes = (uint8_t *)(command);
+        Wire.write(commandBytes[i]);
     }
+    Wire.endTransmission();
 
-    for (int i = 0; i < 3; i++)
+    Log << controllerID << ": " << command[0] << " " << command[1] << " " << command[2] << endl;
+
+    int n = Wire.requestFrom(controllerID, 1);
+    Log << n;
+    while (Wire.available())
     {
-        Serial.print(command[i]);
-        Serial.print(" ");
+        char c = Wire.read();
+        Serial.print(c);
     }
     Serial.println();
-}
-
-void onRequest()
-{
-    Serial.println("Data requested");
-    Wire.write(1);
 }
 
 void setup()
@@ -44,55 +43,54 @@ void setup()
     while (!Serial)
     {
     }
-
     Log << "*************************" << endl;
     Log << "Hello I2C World" << endl;
-#ifdef ID
-    Log << "ID: " << ID << endl;
-#else
     Log << "Master" << endl;
-#endif
 
     pinMode(13, OUTPUT);
 
-    delay(1000);
-
-#ifdef master
     Wire.begin();
-#else
-    Wire.begin(ID);
-    Wire.onRequest(onRequest);
-    Wire.onReceive(onReceive);
 
-#endif
+    Log << "Counting down..." << endl;
+    for (int i = 10; i >= 0; i--)
+    {
+        delay(1000);
+        Log << i << "..." << endl;
+    }
+}
+
+void toggleLED()
+{
+    ledOn = !ledOn;
+    digitalWrite(LED, ledOn);
 }
 
 void loop()
 {
-#ifdef master
-    Serial.print(millis());
-    Serial.print("::");
-    Wire.beginTransmission(ID);
-    for (int i = 0; i < sizeof(command); i++)
-    {
-        uint8_t *commandBytes = (uint8_t *)(command);
-        Wire.write(commandBytes[i]);
-    }
-    Wire.endTransmission();
-    int n = Wire.requestFrom(ID, 1);
-    Serial.print(n);
-    Serial.print(" ");
-    while (Wire.available())
-    {
-        char c = Wire.read();
-        Serial.print(c);
-    }
-    Serial.println();
-    ledOn = !ledOn;
-    digitalWrite(13, ledOn);
+    Log << "Loop start" << endl;
 
-    delay(2000);
+    for (int i = 0; i < sizeof(controllerID) / sizeof(controllerID[0]); i++)
+    {
+        sendCommand(controllerID[i], 0, slowPos, halfStepTime);
+        delay(12);
+        sendCommand(controllerID[i], 1, fastPos - clicksPerRev, halfStepTime);
+        delay(12);
+    }
+    toggleLED();
+    delay(1000);
 
-#else
-#endif
+    for (int i = 0; i < sizeof(controllerID) / sizeof(controllerID[0]); i++)
+    {
+        sendCommand(controllerID[i], 0, fastPos, halfStepTime);
+        delay(12);
+        sendCommand(controllerID[i], 1, slowPos, halfStepTime);
+        delay(12);
+    }
+    toggleLED();
+    delay(1000);
+
+    fastPos += clicksPerRev;
+    slowPos += clicksPerRev;
+
+    Log << "Loop done" << endl;
 }
