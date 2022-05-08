@@ -6,9 +6,9 @@ int LED = 13;
 bool ledOn = false;
 
 const int32_t clicksPerRev = 1792;
-int32_t slowPos = 0;
-int32_t fastPos = 1200;
-const int32_t halfStepTime = 1e6;
+int32_t slowPos = -250;
+int32_t fastPos = 250;
+const int32_t halfStepTime = 0.75e6;
 const int controllerID[3] = {8, 9, 10};
 
 void sendCommand(int8_t controllerID, int motorID, int32_t pos, int32_t halfStepTime)
@@ -69,25 +69,37 @@ void loop()
 {
     Log << "Loop start" << endl;
 
-    for (int i = 0; i < sizeof(controllerID) / sizeof(controllerID[0]); i++)
-    {
-        sendCommand(controllerID[i], 0, slowPos, halfStepTime);
-        delay(12);
-        sendCommand(controllerID[i], 1, fastPos - clicksPerRev, halfStepTime);
-        delay(12);
-    }
-    toggleLED();
-    delay(1000);
+    sendCommand(controllerID[0], 0, slowPos, halfStepTime);
+    delay(12);
+    sendCommand(controllerID[0], 1, fastPos - clicksPerRev, halfStepTime);
+    delay(12);
+    sendCommand(controllerID[1], 1, slowPos, halfStepTime);
+    delay(12);
+    sendCommand(controllerID[1], 0, fastPos - clicksPerRev, halfStepTime);
+    delay(12);
+    sendCommand(controllerID[2], 0, slowPos, halfStepTime);
+    delay(12);
+    sendCommand(controllerID[2], 1, fastPos - clicksPerRev, halfStepTime);
+    delay(12);
 
-    for (int i = 0; i < sizeof(controllerID) / sizeof(controllerID[0]); i++)
-    {
-        sendCommand(controllerID[i], 0, fastPos, halfStepTime);
-        delay(12);
-        sendCommand(controllerID[i], 1, slowPos, halfStepTime);
-        delay(12);
-    }
     toggleLED();
-    delay(1000);
+    delay(halfStepTime / 1e3);
+
+    sendCommand(controllerID[0], 0, fastPos, halfStepTime);
+    delay(12);
+    sendCommand(controllerID[0], 1, slowPos, halfStepTime);
+    delay(12);
+    sendCommand(controllerID[1], 1, fastPos, halfStepTime);
+    delay(12);
+    sendCommand(controllerID[1], 0, slowPos, halfStepTime);
+    delay(12);
+    sendCommand(controllerID[2], 0, fastPos, halfStepTime);
+    delay(12);
+    sendCommand(controllerID[2], 1, slowPos, halfStepTime);
+    delay(12);
+
+    toggleLED();
+    delay(halfStepTime / 1e3);
 
     fastPos += clicksPerRev;
     slowPos += clicksPerRev;
